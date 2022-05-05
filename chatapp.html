@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>chatApp</title>
+  <link rel="stylesheet" href="css/chatapp.css">
+</head>
+
+<body>
+  <div id="zentai_container">
+    <h1>トークルーム</h1>
+
+    <!-- データ出力場所 -->
+    <ul id="output"></ul>
+
+    <!-- 入力場所 -->
+    <form>
+      <fieldset>
+        <legend>チャット入力画面</legend>
+        <div>
+          name: <input type="text" id="name">
+        </div>
+        <div>
+          text: <input type="text" id="text">
+        </div>
+        <div>
+          <button type="button" id="send">send</button>
+        </div>
+      </fieldset>
+    </form>
+
+    <button id="logout">ログイン画面へ戻る</button>
+
+  </div>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script>
+    // 日時をいい感じの形式にする関数(timestampを人間がわかる時間表示にする)
+    function convertTimestampToDatetime(timestamp) {
+      const _d = timestamp ? new Date(timestamp * 1000) : new Date();
+      const Y = _d.getFullYear();
+      const m = (_d.getMonth() + 1).toString().padStart(2, '0');
+      const d = _d.getDate().toString().padStart(2, '0');
+      const H = _d.getHours().toString().padStart(2, '0');
+      const i = _d.getMinutes().toString().padStart(2, '0');
+      const s = _d.getSeconds().toString().padStart(2, '0');
+      return `${H}:${i}`;
+    }
+
+  </script>
+  <!-- 以下にfirebaseのコードを貼り付けよう -->
+  <!--以下、（追加）の記述ぶぶんは、最初にfirebaseのコードを貼りつけた段階では記述がないため、自分で記述を追加した箇所-->
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.7.0/firebase-app.js";
+    // TODO: Add SDKs for Firebase products that you want to use
+    // https://firebase.google.com/docs/web/setup#available-libraries
+
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // （追加）たぶんgoogle先生が作った関数を使えるようにインポートする処理
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // / `9.2.0`の部分を↑のFirestoreから貼り付けたコードのバージョンに合わせる
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      serverTimestamp,
+      query,
+      orderBy,
+      onSnapshot,
+    } from "https://www.gstatic.com/firebasejs/9.7.0/firebase-firestore.js";
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    //「たぶんgoogle先生が作った関数を使えるようにインポートする処理」ここまで
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "課題提出システムに貼り付け",
+      authDomain: "chat-94da9.firebaseapp.com",
+      projectId: "chat-94da9",
+      storageBucket: "chat-94da9.appspot.com",
+      messagingSenderId: "304147134744",
+      appId: "1:304147134744:web:9eddbfaf9aaf80e3f8466d"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+
+    //（追加）DBと通信ができるようにする
+    const db = getFirestore(app);
+
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    //（追加）クリックして送信する処理
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+    $("#send").on("click", function () {
+
+      //ボタンクリック時にDBにデータを追加する
+      const postData = {
+        name: $("#name").val(),
+        text: $("#text").val(),
+        time: serverTimestamp(),
+      };
+      addDoc(collection(db, "chat"), postData); //chatコレクションにデータ入れる("chat"部分は作ったコレクション名に合わせて変える)
+      $("#text").val("");                       //textの欄を空欄にする
+    });
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    //「クリックして送信する処理」ここまで
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    //（おまけ）エンターキーで送信
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+    $("#text").on("keydown", function (e) {
+      if (e.keyCode === 13) {
+        const postData = {
+          name: $("#name").val(),
+          text: $("#text").val(),
+          time: serverTimestamp(),
+        };
+        addDoc(collection(db, "chat"), postData);
+        $("#text").val("");
+      }
+    });
+
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    //「エンターキーで送信」ここまで
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    //（追加）データを取得する処理
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    //データ取得条件（時間の新しい順に並び替え）の指定
+    const q = query(collection(db, "chat"), orderBy("time", "asc")); //orderByが出たら並び替えと考える desc:降順（新→旧） asc:昇順（旧→新）
+
+    //onSnapshotを使うと自動でデータを取得してくれる("q"の部分はもともと"query(collection(db, "chat")"つまり場所指定。"q"は変数内で指定している。)
+    onSnapshot(q, (querySnapshot) => {
+      //オンラインに保存してあるデータを使いたい場合は必ず{}内に処理を記述する
+      //querySnapshotに全部のデータ（生データ）が入っている
+      console.log(querySnapshot.docs);
+
+      //生データは使いにくいのでほしいものだけを取り出してdocumentsに入れる
+      //下の処理は毎回同じでいけるので使いまわしてOK
+      const documents = []; //空の配列(documents)を作って
+      querySnapshot.docs.forEach(function (doc) {
+        const document = {                        //documentにデータを取得(documentsではない！)
+          id: doc.id,                             //idドキュメントの名前）の取得
+          data: doc.data(),                       //data(name,text,time)の取得
+        };
+        documents.push(document);
+      });
+
+      console.log(documents);
+
+      //documentsから表示したいデータを取り出して画面表示用のタグに埋め込む
+      const htmlElements = [];                    //空の配列を作って
+      documents.forEach(function (document) {
+        htmlElements.push(                        //`(バッククォート)を使うと文字列を${}で入れることができる
+          `
+          <div class="message_container"> 
+            <p class="message_name">${document.data.name} </p> 
+              <div class="message_area">
+                <li id="${document.id}">
+                  <p class="fukidashi">${document.data.text}</p>
+                </li>
+                <div class="message_time_oya">
+                  <p class="message_time">${convertTimestampToDatetime(document.data.time?.seconds)}<p>
+                </div>
+              </div>
+           </div>
+          `
+        );
+      });
+      $("#output").html(htmlElements);//.html():タグを反映させる
+    });
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    //「データを取得する処理」ここまで
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    //ログイン画面へ
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    logout.addEventListener('click', function (e) {
+      window.location.href = './index.html';
+    });
+
+  </script>
+
+</body>
+
+</html>

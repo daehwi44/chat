@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>chatApp</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <h1>ログイン画面</h1>
+    <div class="mail_input">
+        メールアドレス<input id="mailAddress" type="mailAddress" required />
+    </div>
+    <div class="pass_input">
+        パスワード<input id="password" type="password" required />
+    </div>
+
+    <div>
+        <button id="login">ログイン</button>
+        <button id="register">新規登録</button>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/5.3.1/firebase.js"></script>
+    <script>
+        // Initialize Firebase
+        var config = {
+            apiKey: "課題提出システムに貼り付け",
+            authDomain: "chat-94da9.firebaseapp.com",
+            databaseURL: "https://chat-94da9-default-rtdb.firebaseio.com",
+            projectId: "chat-94da9",
+            storageBucket: "chat-94da9.appspot.com",
+            messagingSenderId: "304147134744",
+            appId: "1:304147134744:web:9eddbfaf9aaf80e3f8466d",
+        };
+        firebase.initializeApp(config);
+    </script>
+
+    <script>
+        //新規登録処理
+        register.addEventListener('click', function (e) {
+            let mailAddress = document.getElementById('mailAddress').value; //mailAddressの取得
+            let password = document.getElementById('password').value;       //passwordの取得
+
+            firebase.auth().createUserWithEmailAndPassword(mailAddress, password)
+                .then((userCredential) => {
+                    alert('新規登録完了。トーク画面へ移行します。');
+                    window.location.href = './chatapp.html';
+                })
+                .catch((error) => {
+                    alert('登録できません（' + error.message + '）');
+                    // ..
+                });
+
+        });
+
+        //ログイン処理
+        login.addEventListener('click', function (e) {
+            let mailAddress = document.getElementById('mailAddress').value; //mailAddressの取得
+            let password = document.getElementById('password').value;       //passwordの取得
+
+            firebase.auth().signInWithEmailAndPassword(mailAddress, password)
+                .then((userCredential) => {
+                    window.location.href = './chatapp.html';
+                })
+                .catch((error) => {
+                    alert('ログインできません（' + error.message + '）');
+                });
+        });
+
+
+
+    </script>
+
+</body>
+
+</html>
